@@ -56,17 +56,25 @@ export const InstallPWAButton: React.FC = () => {
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
-      // Trigger native browser install prompt directly
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setIsInstalled(true);
-        setDeferredPrompt(null);
-        return;
+      try {
+        // Trigger native browser install prompt directly
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setIsInstalled(true);
+          setDeferredPrompt(null);
+          return;
+        }
+      } catch (err) {
+        console.warn('Native install prompt error:', err);
       }
     }
-    // Show instruction modal with interactive guidance
+    // Show instruction modal with interactive guidance and direct action
     setShowInstructionsModal(true);
+  };
+
+  const handleOpenInNewTab = () => {
+    window.open(window.location.href, '_blank');
   };
 
   const triggerNativePrompt = async () => {
@@ -145,11 +153,20 @@ export const InstallPWAButton: React.FC = () => {
 
             {/* Iframe notice if applicable */}
             {isIframe && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] font-medium text-amber-800 flex items-start gap-2">
-                <ExternalLink className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Dica para instalar:</strong> Abra o aplicativo fora do pré-visualizador (em uma nova aba ou direto no seu navegador Chrome/Safari) para poder instalar com um clique na tela inicial.
-                </span>
+              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-2xl text-[11px] font-medium text-indigo-900 space-y-2">
+                <div className="flex items-start gap-2">
+                  <ExternalLink className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Dica de Instalação:</strong> Os navegadores exigem que o app seja aberto fora do pré-visualizador para ativar a instalação nativa com 1 clique na tela inicial.
+                  </span>
+                </div>
+                <button
+                  onClick={handleOpenInNewTab}
+                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Abrir em Nova Aba para Instalar</span>
+                </button>
               </div>
             )}
 
