@@ -1,0 +1,6 @@
+{
+  "name": "TubeStudy AI - Plataforma de Estudo com YouTube",
+  "description": "Plataforma de estudos interativa com IA para vídeos do YouTube: Flashcards SRS, Quizzes, Chatbot Tutor com timestamp, Pomodoro e Gamificação.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

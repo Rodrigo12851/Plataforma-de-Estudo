@@ -1,0 +1,25 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' width='512' height='512'>
+  <rect width='512' height='512' rx='110' fill='#0f172a'/>
+  <defs>
+    <linearGradient id='grad' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#6366f1'/>
+      <stop offset='100%' stop-color='#4f46e5'/>
+    </linearGradient>
+    <linearGradient id='playGrad' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#ef4444'/>
+      <stop offset='100%' stop-color='#dc2626'/>
+    </linearGradient>
+  </defs>
+  <!-- Background glow card -->
+  <rect x='64' y='64' width='384' height='384' rx='70' fill='url(#grad)' opacity='0.25'/>
+  <rect x='80' y='80' width='352' height='352' rx='60' fill='#1e293b' stroke='#334155' stroke-width='4'/>
+  
+  <!-- YouTube Play Shield -->
+  <path d='M330 180 C340 180 350 188 350 200 L350 312 C350 324 340 332 330 332 L182 332 C172 332 162 324 162 312 L162 200 C162 188 172 180 182 180 Z' fill='url(#playGrad)'/>
+  <!-- Play triangle -->
+  <path d='M232 220 L296 256 L232 292 Z' fill='#ffffff'/>
+  
+  <!-- AI Sparkle -->
+  <path d='M350 140 C350 160 360 170 380 170 C360 170 350 180 350 200 C350 180 340 170 320 170 C340 170 350 160 350 140 Z' fill='#38bdf8'/>
+  <path d='M160 340 C160 352 166 358 178 358 C166 358 160 364 160 376 C160 364 154 358 142 358 C154 358 160 352 160 340 Z' fill='#818cf8'/>
+</svg>

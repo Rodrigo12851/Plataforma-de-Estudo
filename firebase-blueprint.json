@@ -1,0 +1,29 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profiles",
+      "description": "User profile and gamification state",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid"]
+    },
+    "lessons": {
+      "title": "Class Lessons",
+      "description": "User study lessons generated from YouTube videos",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "youtubeId": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "title", "youtubeId"]
+    }
+  }
+}

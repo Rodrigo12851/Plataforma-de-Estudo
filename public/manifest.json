@@ -1,0 +1,30 @@
+{
+  "short_name": "TubeStudy AI",
+  "name": "TubeStudy AI - Plataforma de Estudo com YouTube",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "description": "Plataforma de estudos interativa com IA para vídeos do YouTube: Flashcards SRS, Quizzes, Chatbot Tutor e Gamificação."
+}
