@@ -1,6 +1,7 @@
 import React from 'react';
 import { Flame, Timer, Sparkles, BookOpen, Plus, ShieldCheck, Zap } from 'lucide-react';
 import { UserGamification } from '../types';
+import { InstallPWAButton } from './InstallPWAButton';
 
 interface HeaderProps {
   gamification: UserGamification;
@@ -143,6 +144,9 @@ export const Header: React.FC<HeaderProps> = ({
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Nova Aula</span>
           </button>
+
+          {/* Download PWA App Button */}
+          <InstallPWAButton />
         </div>
       </div>
     </header>
