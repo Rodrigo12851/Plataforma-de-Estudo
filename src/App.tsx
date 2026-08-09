@@ -388,6 +388,7 @@ export default function App() {
         isOpen={isNewLessonModalOpen}
         onClose={() => setIsNewLessonModalOpen(false)}
         onAddLesson={handleAddLesson}
+        existingLessons={lessons}
       />
 
       <AchievementsModal

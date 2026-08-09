@@ -35,51 +35,54 @@ function extractYouTubeId(url: string): string {
 // Route 1: Process YouTube Video with Gemini AI
 app.post('/api/process-video', async (req, res) => {
   try {
-    const { youtubeUrl, category, customTitle } = req.body;
+    const { youtubeUrl, category, customTitle, courseName, existingCourseContext } = req.body;
     const videoId = extractYouTubeId(youtubeUrl);
 
     if (!process.env.GEMINI_API_KEY) {
-      // Fallback fallback simulated generated output if no API key set
+      // Fallback simulated generated output if no API key set
+      const themeTitle = customTitle || `Aula do YouTube (${videoId})`;
       return res.json({
         id: `lesson-${Date.now()}`,
         youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
         youtubeId: videoId,
-        title: customTitle || `Aula do YouTube (${videoId})`,
+        title: themeTitle,
         channel: 'Canal Educacional',
         duration: '12:30',
         category: category || 'Geral',
-        summary: 'Esta aula aborda os princípios fundamentais do tema selecionado, fornecendo conceitos-chave, demonstrações práticas, explicações passo a passo e resumos para estudo.',
+        courseName: courseName || undefined,
+        summary: `Nesta vídeoaula sobre "${themeTitle}"${courseName ? ` do curso "${courseName}"` : ''}, você aprenderá os conceitos fundamentais explicados pelo professor, com demonstrações práticas e explicações específicas para este tópico da disciplina.`,
         keyTakeaways: [
-          'Conceitos fundamentais explicados nos minutos iniciais.',
-          'Demonstração prática dos tópicos principais no meio do vídeo.',
-          'Estratégias de consolidação e revisão ao final.'
+          `Conceito central de ${themeTitle} explicado no início do vídeo.`,
+          'Aplicações práticas apresentadas pelo professor.',
+          'Pontos de atenção e erros comuns que você deve evitar.',
+          'Resumo dos tópicos essenciais para fixação e provas.'
         ],
         timestamps: [
-          { time: '00:00', seconds: 0, topic: 'Introdução e Visão Geral', summary: 'Apresentação do tema e objetivos da aula.' },
-          { time: '02:15', seconds: 135, topic: 'Conceito Teórico Chave', summary: 'Detalhamento da teoria e fórmulas fundamentais.' },
-          { time: '04:20', seconds: 260, topic: 'Exemplo Prático & Momento Crucial', summary: 'Resolução passo a passo e análise dos pontos mais cobrados.' },
-          { time: '08:10', seconds: 490, topic: 'Aplicações no Mundo Real', summary: 'Casos práticos de uso do conhecimento.' },
-          { time: '11:00', seconds: 660, topic: 'Conclusão e Dicas de Estudo', summary: 'Recapitulando os pontos essenciais da aula.' }
+          { time: '00:00', seconds: 0, topic: 'Introdução ao Tema', summary: `Apresentação dos objetivos do estudante na aula sobre ${themeTitle}.` },
+          { time: '02:15', seconds: 135, topic: 'Conceito Teórico Principal', summary: 'Detalhamento da teoria e regras fundamentais.' },
+          { time: '04:20', seconds: 260, topic: 'Exemplo Prático e Aplicação', summary: 'Resolução passo a passo feita pelo professor.' },
+          { time: '08:10', seconds: 490, topic: 'Pontos Críticos para o Estudante', summary: 'Dicas de estudo e memorização sobre o assunto.' },
+          { time: '11:00', seconds: 660, topic: 'Conclusão da Aula', summary: 'Recapitulando os pontos essenciais que você aprendeu.' }
         ],
-        flashcards: Array.from({ length: 20 }).map((_, i) => ({
+        flashcards: Array.from({ length: 8 }).map((_, i) => ({
           id: `fc-gen-${Date.now()}-${i}`,
-          front: `Pergunta de Estudo ${i + 1}: Qual é o conceito chave abordado no tópico ${i + 1}?`,
-          back: `Resposta do conceito ${i + 1}: Explicação didática clara para memorização e consolidação no sistema SRS.`,
+          front: `Pergunta ${i + 1} sobre ${themeTitle}: Como você deve aplicar o conceito ${i + 1} ensinado pelo professor?`,
+          back: `Explicação do conceito ${i + 1}: Detalhamento didático fornecido no vídeo para você memorizar no sistema SRS.`,
           srsStage: 'new' as const,
           nextReviewDays: 0,
           lastReviewed: null
         })),
-        quiz: Array.from({ length: 10 }).map((_, i) => ({
+        quiz: Array.from({ length: 5 }).map((_, i) => ({
           id: `q-gen-${Date.now()}-${i}`,
-          question: `Questão de Referência ${i + 1}: Sobre a explicação do professor na aula (referência do minuto ${i % 2 === 0 ? '02:15' : '04:20'}), qual alternativa está correta?`,
+          question: `Questão ${i + 1} para você: Com base na explicação do professor no minuto ${i % 2 === 0 ? '02:15' : '04:20'} sobre ${themeTitle}, qual opção está correta?`,
           options: [
-            `A alternativa A apresenta a explicação precisa do professor.`,
-            `A alternativa B é uma afirmação incorreta.`,
-            `A alternativa C refere-se a um detalhe irrelevante.`,
-            `A alternativa D é um distrator conceitual.`
+            `A alternativa A apresenta a explicação exata do professor no vídeo.`,
+            `A alternativa B é uma interpretação equivocada do tema.`,
+            `A alternativa C aborda um conceito divergente.`,
+            `A alternativa D é um distrator comum.`
           ],
           correctAnswer: 0,
-          explanation: `A alternativa A é correta pois resume fielmente o que foi ensinado pelo professor durante este trecho da aula.`,
+          explanation: `A alternativa A é correta pois sintetiza fielmente o que foi ensinado pelo professor durante este trecho do vídeo para o estudante.`,
           timestampRef: i % 2 === 0 ? '02:15' : '04:20'
         })),
         createdAt: new Date().toISOString(),
@@ -88,21 +91,38 @@ app.post('/api/process-video', async (req, res) => {
       });
     }
 
-    const prompt = `Você é um tutor pedagógico de inteligência artificial.
-Analise e processe o conteúdo sobre o vídeo do YouTube ID: "${videoId}" / URL: "${youtubeUrl}".
-Se a URL contiver um tema específico ou o título for "${customTitle}", use esse tópico para gerar o material de aula.
-Caso não conheça a transcrição exata, crie um plano de estudo profundo, verossímil e didático como se fosse uma aula completa sobre este assunto.
+    const prompt = `Você é um tutor pedagógico de inteligência artificial especializado em criar materiais de estudo exclusivos para videoaulas do YouTube.
+Você está criando um plano de estudos personalizado para o ALUNO referente à videoaula do YouTube ID: "${videoId}" (URL: "${youtubeUrl}").
+${customTitle ? `Título/Tema da aula informado pelo aluno: "${customTitle}".` : 'Deduza o assunto e tema específico principal com base na aula ou contexto do vídeo.'}
+${courseName ? `ESTA AULA FAZ PARTE DA PLAYLIST/CURSO: "${courseName}".` : ''}
+Categoria selecionada: "${category || 'Geral'}".
+
+${existingCourseContext ? `
+===================================================================
+AULAS E QUESTÕES JÁ GERADAS ANTERIORMENTE NESTA MESMA PLAYLIST/CURSO ("${courseName || 'Curso'}"):
+${existingCourseContext}
+===================================================================
+REGRA ABSOLUTA ANTI-REPETIÇÃO PARA A PLAYLIST/CURSO:
+1. É ESTRITAMENTE PROIBIDO REPETIR ou REFORMULAR qualquer uma das perguntas ou tópicos listados acima que já foram testados nas aulas anteriores deste mesmo curso!
+2. Analise os temas anteriores e garanta que todas as questões e flashcards criados agora sejam 100% INÉDITOS, focando EXCLUSIVAMENTE nas novidades e conceitos específicos ensinados nesta nova videoaula.
+` : ''}
+
+REGRAS CRÍTICAS DE CONTEÚDO, QUANTIDADE E FORMATO:
+1. QUANTIDADE LIVRE E ADEQUADA AO TAMANHO DO VÍDEO: Adapte a quantidade de flashcards e de questões do quiz de acordo com a duração e a densidade do tema falado pelo professor na videoaula. Não force um número fixo! Gere uma quantidade proporcional ao conteúdo (exemplo: para vídeos curtos ou simples, 5 a 8 flashcards e 3 a 5 perguntas; para vídeos longos e densos, de 8 a 15 flashcards e 5 a 10 perguntas).
+2. FORMULAÇÃO DIRIGIDA AO ESTUDANTE: Cada questão do quiz e card deve ser dirigido DIRETAMENTE ao estudante em 2ª pessoa (ex: "Com base na explicação do professor nesta aula sobre [Tema do Vídeo], como você deve...", "De acordo com o conceito de [Tópico] apresentado no vídeo, qual alternativa explica corretamente para você...", "Se você precisar aplicar a regra de [Tema], qual é a resposta correta?").
+3. FOCO ESTRITO NO TEMA DA VIDEOAULA: Como cada aula de um curso tem seu próprio tema específico (Aula 1, Aula 2, etc.), extraia estritamente os conceitos falados pelo professor nesta videoaula. Não faça perguntas genéricas ou repetidas de outras aulas.
+4. QUALIDADE PEDAGÓGICA: Cada questão deve testar a compreensão real do estudante sobre o assunto do vídeo, oferecendo 4 opções plausíveis e uma explicação didática detalhada e direta para o aluno.
 
 Forneça rigorosamente o JSON com:
-- title: Título atrativo e profissional da aula
-- channel: Nome verossímil do canal do professor/instituição
+- title: Título específico e profissional da aula abordando o tema exato (ex: "Estruturas de Dados: Listas Encadeadas" ou "Física Quântica: Efeito Fotoelétrico")
+- channel: Nome do canal do professor/instituição
 - duration: Duração aproximada em formato MM:SS (ex: 15:40)
 - category: Escolha exatamente uma destas: "Exatas", "Humanas", "Tecnologia", "Idiomas", "Geral"
-- summary: Um resumo didático detalhado da aula (2 a 4 parágrafos em português).
-- keyTakeaways: Array com 4 pontos principais aprendidos.
-- timestamps: Array com exatamente 5 a 6 marcadores de tempo contendo { "time": "MM:SS", "seconds": numero, "topic": string, "summary": string }. OBRIGATÓRIO incluir um timestamp no tempo "04:20" (260 segundos) com um momento explicativo marcante!
-- flashcards: Array com EXATAMENTE 20 flashcards didáticos com { "front": string, "back": string }.
-- quiz: Array com EXATAMENTE 10 questões de múltipla escolha com { "question": string, "options": [4 strings], "correctAnswer": indice 0 a 3, "explanation": string, "timestampRef": "MM:SS (de acordo com os marcadores de tempo de referência do vídeo)" }.`;
+- summary: Um resumo didático detalhado para o estudante (2 a 4 parágrafos em português focados estritamente no tema deste vídeo).
+- keyTakeaways: Array com 4 a 6 pontos fundamentais que o estudante aprendeu nesta aula.
+- timestamps: Array com 4 a 7 marcadores de tempo contendo { "time": "MM:SS", "seconds": numero, "topic": string, "summary": string }. OBRIGATÓRIO incluir um timestamp no tempo "04:20" (260 segundos) com um momento explicativo marcante!
+- flashcards: Array com quantidade livre (proporcional à aula) de flashcards didáticos e específicos do tema dirigidos ao estudante com { "front": string, "back": string }.
+- quiz: Array com quantidade livre (proporcional à aula) de questões de múltipla escolha dirigidas diretamente ao estudante sobre o tema do vídeo com { "question": string, "options": [4 strings], "correctAnswer": indice 0 a 3, "explanation": string, "timestampRef": "MM:SS" }.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.6-flash',
@@ -178,6 +198,7 @@ Forneça rigorosamente o JSON com:
       channel: parsedData.channel || 'Canal Educacional',
       duration: parsedData.duration || '12:00',
       category: parsedData.category || category || 'Geral',
+      courseName: courseName || undefined,
       summary: parsedData.summary || 'Resumo da aula processada.',
       keyTakeaways: parsedData.keyTakeaways || [],
       timestamps: parsedData.timestamps || [
@@ -225,17 +246,17 @@ app.post('/api/tutor', async (req, res) => {
       });
     }
 
-    const systemPrompt = `Você é o "Tutor IA da Aula" (Tira-dúvidas inteligente).
-O aluno está assistindo à aula intitulada: "${lessonTitle}".
-Resumo da aula: ${lessonSummary}
+    const systemPrompt = `Você é o Tutor Particular do Estudante para esta aula no TubeStudy AI.
+Você está conversando DIRETAMENTE com o estudante sobre a aula intitulada: "${lessonTitle}".
+Resumo do tema da aula: ${lessonSummary}
 Marcadores de tempo da aula: ${JSON.stringify(timestamps || [])}
-Momento atual da aula selecionado pelo aluno: "${currentTimestamp || '04:20'}".
+Momento atual selecionado pelo estudante no vídeo: "${currentTimestamp || '04:20'}".
 
-INSTRUÇÕES:
-1. Responda à dúvida do aluno de forma extremamente clara, didática, empática e em português empolgante.
-2. Se o aluno perguntar algo como "O que o professor quis dizer no minuto 04:20?" ou citar um minuto específico, refira-se expressamente a esse minuto e forneça a explicação exata baseada nos marcadores e resumo da aula.
-3. Mantenha a resposta com formatação limpa (pode usar marcações curtas ou tópicos).
-4. Termine com uma breve pergunta instigante ou palavra de incentivo ao estudo.`;
+INSTRUÇÕES PEDAGÓGICAS:
+1. Dirija-se diretamente ao estudante em tom acolhedor, profissional e motivador.
+2. Responda focando 100% no tema específico desta aula.
+3. Se o estudante solicitar uma pergunta ou desafio sobre o tema, formule uma pergunta direta e personalizada para ele responder, testando o seu aprendizado do vídeo.
+4. Se o estudante citar um minuto do vídeo, explique o exato ponto ensinado pelo professor naquele trecho.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.6-flash',

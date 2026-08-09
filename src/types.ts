@@ -40,6 +40,7 @@ export interface ClassLesson {
   timestamps: TimestampBookmark[];
   flashcards: Flashcard[];
   quiz: QuizQuestion[];
+  courseName?: string;
   createdAt: string;
   lastStudiedAt: string;
   progress: number; // 0 - 100

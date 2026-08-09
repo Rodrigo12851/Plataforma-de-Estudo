@@ -22,7 +22,8 @@ export const ClassLibrary: React.FC<ClassLibraryProps> = ({
 
   const filteredLessons = lessons.filter((lesson) => {
     const matchesSearch = lesson.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          lesson.channel.toLowerCase().includes(searchQuery.toLowerCase());
+                          lesson.channel.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (lesson.courseName && lesson.courseName.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCategory = selectedCategory === 'Todas' || lesson.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -134,6 +135,12 @@ export const ClassLibrary: React.FC<ClassLibraryProps> = ({
               {/* Card Body */}
               <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
                 <div>
+                  {lesson.courseName && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-[10px] font-bold text-indigo-700 mb-1.5">
+                      <Layers className="w-3 h-3 text-indigo-600" />
+                      <span>{lesson.courseName}</span>
+                    </div>
+                  )}
                   <h3 className="font-bold text-sm text-slate-900 line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors">
                     {lesson.title}
                   </h3>
