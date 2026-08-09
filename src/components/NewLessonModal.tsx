@@ -8,64 +8,6 @@ interface NewLessonModalProps {
   onAddLesson: (lesson: ClassLesson) => void;
 }
 
-function extractYouTubeId(url: string): string {
-  if (!url) return 'aircAruvnKk';
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-  return match ? match[1] : url.length === 11 ? url : 'aircAruvnKk';
-}
-
-function createFallbackLesson(youtubeUrl: string, category: Category, customTitle?: string): ClassLesson {
-  const videoId = extractYouTubeId(youtubeUrl);
-  const titleText = customTitle?.trim() || `Aula do YouTube (${videoId})`;
-
-  return {
-    id: `lesson-${Date.now()}`,
-    youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
-    youtubeId: videoId,
-    title: titleText,
-    channel: 'Canal Educacional',
-    duration: '12:30',
-    category: category || 'Geral',
-    summary: `Esta aula aborda os aspectos fundamentais do tópico "${titleText}". O conteúdo inclui explicações conceituais, exemplos práticos demonstrados ao longo do vídeo e análises essenciais para o aprendizado e revisão ativa.`,
-    keyTakeaways: [
-      `Fundamentos e conceitos essenciais de ${titleText}.`,
-      'Demonstração prática e exemplos com explicações detalhadas.',
-      'Recomendações e estratégias de revisão para consolidação do estudo.'
-    ],
-    timestamps: [
-      { time: '00:00', seconds: 0, topic: 'Introdução e Visão Geral', summary: 'Apresentação do tema e objetivos principais da aula.' },
-      { time: '02:15', seconds: 135, topic: 'Conceito Teórico Fundamental', summary: 'Detalhamento da teoria e explicações primordiais.' },
-      { time: '04:20', seconds: 260, topic: 'Exemplo Prático e Momento Crucial', summary: 'Exemplo resolvido passo a passo e pontos de destaque da aula.' },
-      { time: '08:10', seconds: 490, topic: 'Aplicações Práticas', summary: 'Casos reais e exercícios práticos sobre o assunto.' },
-      { time: '11:00', seconds: 660, topic: 'Resumo Final e Dicas', summary: 'Síntese dos tópicos aprendidos para revisão rápida.' }
-    ],
-    flashcards: Array.from({ length: 20 }).map((_, i) => ({
-      id: `fc-gen-${Date.now()}-${i}`,
-      front: `Pergunta de Estudo ${i + 1}: Qual é o ponto principal discutido sobre ${titleText}?`,
-      back: `Resposta do conceito ${i + 1}: Explicação didática referente ao minuto ${(i * 30) % 60} para memorização no sistema de repetição espaçada.`,
-      srsStage: 'new' as const,
-      nextReviewDays: 0,
-      lastReviewed: null
-    })),
-    quiz: Array.from({ length: 10 }).map((_, i) => ({
-      id: `q-gen-${Date.now()}-${i}`,
-      question: `Questão de Fixação ${i + 1}: De acordo com o conteúdo de "${titleText}", qual afirmação está correta?`,
-      options: [
-        `A alternativa A apresenta o conceito correto e preciso do tópico.`,
-        `A alternativa B é uma hipótese incorreta sobre a aula.`,
-        `A alternativa C trata-se de um conceito não abordado.`,
-        `A alternativa D é um distrator secundário.`
-      ],
-      correctAnswer: 0,
-      explanation: `A alternativa A está correta pois resume o ensinamento do trecho de referência do vídeo.`,
-      timestampRef: i % 2 === 0 ? '02:15' : '04:20'
-    })),
-    createdAt: new Date().toISOString(),
-    lastStudiedAt: new Date().toISOString(),
-    progress: 0
-  };
-}
-
 export const NewLessonModal: React.FC<NewLessonModalProps> = ({
   isOpen,
   onClose,
@@ -85,7 +27,6 @@ export const NewLessonModal: React.FC<NewLessonModalProps> = ({
     setIsLoading(true);
 
     try {
-      let newLesson: ClassLesson;
       const response = await fetch('/api/process-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -96,30 +37,16 @@ export const NewLessonModal: React.FC<NewLessonModalProps> = ({
         })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.id && !data.error) {
-          newLesson = data;
-        } else {
-          newLesson = createFallbackLesson(youtubeUrl, category, customTitle);
-        }
-      } else {
-        newLesson = createFallbackLesson(youtubeUrl, category, customTitle);
-      }
-
+      const newLesson = await response.json();
       onAddLesson(newLesson);
       setIsLoading(false);
       onClose();
       setYoutubeUrl('');
       setCustomTitle('');
     } catch (err) {
-      console.warn('Servidor backend indisponível, gerando aula localmente:', err);
-      const newLesson = createFallbackLesson(youtubeUrl, category, customTitle);
-      onAddLesson(newLesson);
+      console.error('Error generating lesson:', err);
       setIsLoading(false);
-      onClose();
-      setYoutubeUrl('');
-      setCustomTitle('');
+      alert('Erro ao processar o vídeo. Tente novamente ou confira a URL.');
     }
   };
 
