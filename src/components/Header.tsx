@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Timer, Sparkles, BookOpen, Plus, ShieldCheck, Zap } from 'lucide-react';
+import { Flame, Timer, Sparkles, BookOpen, Plus, ShieldCheck, Zap, Database } from 'lucide-react';
 import { UserGamification } from '../types';
 import { InstallPWAButton } from './InstallPWAButton';
 
@@ -39,9 +39,15 @@ export const Header: React.FC<HeaderProps> = ({
               <h1 className="text-lg font-extrabold tracking-tight text-slate-900">
                 TubeStudy AI
               </h1>
-              <p className="text-[10px] text-indigo-600 font-semibold tracking-wide">
-                Estudo Inteligente com YouTube
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[10px] text-indigo-600 font-semibold tracking-wide">
+                  Estudo Inteligente com YouTube
+                </p>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-bold" title="Dados salvos em nuvem no Banco de Dados Firestore">
+                  <Database className="w-2.5 h-2.5 text-emerald-600" />
+                  <span>Nuvem Firestore</span>
+                </span>
+              </div>
             </div>
           </div>
 

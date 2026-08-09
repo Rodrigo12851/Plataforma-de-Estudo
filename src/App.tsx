@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Youtube } from 'lucide-react';
-import { SAMPLE_LESSONS, INITIAL_GAMIFICATION } from './data/sampleLessons';
+import { INITIAL_GAMIFICATION } from './data/sampleLessons';
 import { ClassLesson, UserGamification, SRSStage } from './types';
 import { Header } from './components/Header';
 import { VideoPlayerSection } from './components/VideoPlayerSection';
@@ -14,11 +14,52 @@ import { SRSReviewTab } from './components/SRSReviewTab';
 import { NewLessonModal } from './components/NewLessonModal';
 import { AchievementsModal } from './components/AchievementsModal';
 import { generateLessonPdf } from './utils/pdfGenerator';
+import {
+  subscribeToLessons,
+  saveLessonToFirestore,
+  deleteLessonFromFirestore,
+  subscribeToGamification,
+  saveGamificationToFirestore,
+  subscribeToActiveLessonId,
+  saveActiveLessonIdToFirestore
+} from './lib/firestoreService';
 
 export default function App() {
-  const [lessons, setLessons] = useState<ClassLesson[]>(SAMPLE_LESSONS);
-  const [activeLessonId, setActiveLessonId] = useState<string>(SAMPLE_LESSONS[0].id);
+  const [lessons, setLessons] = useState<ClassLesson[]>([]);
+  const [activeLessonId, setActiveLessonId] = useState<string>('');
   const [gamification, setGamification] = useState<UserGamification>(INITIAL_GAMIFICATION);
+
+  // Real-time listener for Firestore database
+  useEffect(() => {
+    const unsubLessons = subscribeToLessons((firestoreLessons) => {
+      setLessons(firestoreLessons);
+      setActiveLessonId((currentId) => {
+        if (!currentId && firestoreLessons.length > 0) {
+          return firestoreLessons[0].id;
+        }
+        if (currentId && !firestoreLessons.some((l) => l.id === currentId)) {
+          return firestoreLessons[0]?.id || '';
+        }
+        return currentId;
+      });
+    });
+
+    const unsubGamification = subscribeToGamification((firestoreGamification) => {
+      setGamification(firestoreGamification);
+    });
+
+    const unsubActiveId = subscribeToActiveLessonId((activeId) => {
+      if (activeId) {
+        setActiveLessonId(activeId);
+      }
+    });
+
+    return () => {
+      unsubLessons();
+      unsubGamification();
+      unsubActiveId();
+    };
+  }, []);
 
   const [activeTab, setActiveTab] = useState<'study' | 'library' | 'srs'>('study');
   const [activeStudySubTab, setActiveStudySubTab] = useState<'flashcards' | 'quiz' | 'tutor'>('flashcards');
@@ -83,96 +124,113 @@ export default function App() {
     if (!currentLesson) return;
     generateLessonPdf(currentLesson);
     // Add XP reward for generating study guide
-    setGamification((prev) => ({
-      ...prev,
-      xp: prev.xp + 25
-    }));
+    const updatedGamification = {
+      ...gamification,
+      xp: gamification.xp + 25
+    };
+    setGamification(updatedGamification);
+    saveGamificationToFirestore(updatedGamification);
   };
 
   // Handler: Update Flashcard SRS Stage
   const handleUpdateFlashcardSRS = (lessonId: string, cardId: string, stage: SRSStage, reviewDays: number) => {
-    setLessons((prev) =>
-      prev.map((l) => {
-        if (l.id !== lessonId) return l;
+    const targetLesson = lessons.find((l) => l.id === lessonId);
+    if (!targetLesson) return;
+
+    const updatedLesson: ClassLesson = {
+      ...targetLesson,
+      flashcards: targetLesson.flashcards.map((fc) => {
+        if (fc.id !== cardId) return fc;
         return {
-          ...l,
-          flashcards: l.flashcards.map((fc) => {
-            if (fc.id !== cardId) return fc;
-            return {
-              ...fc,
-              srsStage: stage,
-              nextReviewDays: reviewDays,
-              lastReviewed: new Date().toISOString().split('T')[0]
-            };
-          })
+          ...fc,
+          srsStage: stage,
+          nextReviewDays: reviewDays,
+          lastReviewed: new Date().toISOString().split('T')[0]
         };
       })
-    );
+    };
+
+    saveLessonToFirestore(updatedLesson);
 
     // Gamification XP boost
     if (stage === 'mastered') {
-      setGamification((prev) => ({
-        ...prev,
-        xp: prev.xp + 15,
-        totalFlashcardsMastered: prev.totalFlashcardsMastered + 1
-      }));
+      const updatedGamification = {
+        ...gamification,
+        xp: gamification.xp + 15,
+        totalFlashcardsMastered: gamification.totalFlashcardsMastered + 1
+      };
+      setGamification(updatedGamification);
+      saveGamificationToFirestore(updatedGamification);
     }
   };
 
   // Handler: Quiz Complete
   const handleCompleteQuiz = (score: number, total: number) => {
     const gainedXp = score * 20;
-    setGamification((prev) => ({
-      ...prev,
-      xp: prev.xp + gainedXp,
-      totalQuizzesCompleted: prev.totalQuizzesCompleted + 1,
-      achievements: prev.achievements.map((a) => {
+    const updatedGamification = {
+      ...gamification,
+      xp: gamification.xp + gainedXp,
+      totalQuizzesCompleted: gamification.totalQuizzesCompleted + 1,
+      achievements: gamification.achievements.map((a) => {
         if (a.id === 'ach-5' && score === total) {
           return { ...a, unlocked: true, unlockedAt: new Date().toISOString().split('T')[0] };
         }
         return a;
       })
-    }));
+    };
 
-    // Update lesson progress
+    setGamification(updatedGamification);
+    saveGamificationToFirestore(updatedGamification);
+
+    // Update lesson progress in Firestore
     if (currentLesson) {
       const progressVal = Math.min(100, Math.round((score / total) * 100));
-      setLessons((prev) =>
-        prev.map((l) => (l.id === currentLesson.id ? { ...l, progress: Math.max(l.progress, progressVal) } : l))
-      );
+      const updatedLesson: ClassLesson = {
+        ...currentLesson,
+        progress: Math.max(currentLesson.progress, progressVal)
+      };
+      saveLessonToFirestore(updatedLesson);
     }
   };
 
   // Handler: Add New Lesson
   const handleAddLesson = (newLesson: ClassLesson) => {
-    setLessons((prev) => [newLesson, ...prev]);
+    saveLessonToFirestore(newLesson);
     setActiveLessonId(newLesson.id);
+    saveActiveLessonIdToFirestore(newLesson.id);
     setActiveTab('study');
 
-    // Unlock achievement
-    setGamification((prev) => ({
-      ...prev,
-      xp: prev.xp + 50
-    }));
+    // Unlock achievement & XP
+    const updatedGamification = {
+      ...gamification,
+      xp: gamification.xp + 50
+    };
+    setGamification(updatedGamification);
+    saveGamificationToFirestore(updatedGamification);
   };
 
   // Handler: Delete Lesson
   const handleDeleteLesson = (id: string) => {
-    const updated = lessons.filter((l) => l.id !== id);
-    setLessons(updated);
+    deleteLessonFromFirestore(id);
+    const remaining = lessons.filter((l) => l.id !== id);
     if (activeLessonId === id) {
-      setActiveLessonId(updated[0]?.id || '');
+      const nextId = remaining[0]?.id || '';
+      setActiveLessonId(nextId);
+      saveActiveLessonIdToFirestore(nextId);
     }
   };
 
   // Handler: Pomodoro Focus minutes completed
   const handleMinutesStudied = (minutes: number) => {
-    setGamification((prev) => ({
-      ...prev,
-      xp: prev.xp + minutes * 5,
-      totalMinutesFocused: prev.totalMinutesFocused + minutes
-    }));
+    const updatedGamification = {
+      ...gamification,
+      xp: gamification.xp + minutes * 5,
+      totalMinutesFocused: gamification.totalMinutesFocused + minutes
+    };
+    setGamification(updatedGamification);
+    saveGamificationToFirestore(updatedGamification);
   };
+
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-indigo-500 selection:text-white flex flex-col">
@@ -295,6 +353,7 @@ export default function App() {
             activeLessonId={activeLessonId}
             onSelectLesson={(id) => {
               setActiveLessonId(id);
+              saveActiveLessonIdToFirestore(id);
               setActiveTab('study');
             }}
             onDeleteLesson={handleDeleteLesson}
