@@ -154,6 +154,9 @@ export const ClassroomTutorChat: React.FC<ClassroomTutorChatProps> = ({
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`Servidor respondeu com status ${response.status}`);
+      }
       const data = await response.json();
 
       const tutorMsg: ChatMessage = {
