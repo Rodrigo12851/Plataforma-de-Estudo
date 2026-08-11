@@ -60,12 +60,37 @@ export function subscribeToLessons(
   return unsubscribe;
 }
 
+// Helper to strip undefined values recursively so Firestore setDoc does not throw errors
+function sanitizeForFirestore<T>(obj: T): T {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeForFirestore) as unknown as T;
+  }
+  if (typeof obj === 'object') {
+    const cleaned: Record<string, any> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        cleaned[key] = sanitizeForFirestore(value);
+      }
+    }
+    return cleaned as T;
+  }
+  return obj;
+}
+
 /**
  * Save or update a lesson directly in Firestore
  */
 export async function saveLessonToFirestore(lesson: ClassLesson): Promise<void> {
+  if (!lesson || !lesson.id) {
+    console.warn('saveLessonToFirestore chamada com aula inválida:', lesson);
+    return;
+  }
   try {
-    await setDoc(doc(db, 'lessons', lesson.id), lesson);
+    const cleanLesson = sanitizeForFirestore(lesson);
+    await setDoc(doc(db, 'lessons', lesson.id), cleanLesson);
   } catch (err) {
     console.error(`Erro ao salvar aula ${lesson.id} no Firestore:`, err);
   }
@@ -75,6 +100,7 @@ export async function saveLessonToFirestore(lesson: ClassLesson): Promise<void> 
  * Delete a lesson document from Firestore
  */
 export async function deleteLessonFromFirestore(lessonId: string): Promise<void> {
+  if (!lessonId) return;
   try {
     await deleteDoc(doc(db, 'lessons', lessonId));
   } catch (err) {
@@ -96,7 +122,8 @@ export function subscribeToGamification(
       } else {
         // Initialize gamification doc if missing
         try {
-          await setDoc(GAMIFICATION_DOC_REF, INITIAL_GAMIFICATION);
+          const cleanGamification = sanitizeForFirestore(INITIAL_GAMIFICATION);
+          await setDoc(GAMIFICATION_DOC_REF, cleanGamification);
           onData(INITIAL_GAMIFICATION);
         } catch (e) {
           console.error('Erro ao criar gamificação inicial no Firestore:', e);
@@ -117,8 +144,10 @@ export function subscribeToGamification(
 export async function saveGamificationToFirestore(
   gamification: UserGamification
 ): Promise<void> {
+  if (!gamification) return;
   try {
-    await setDoc(GAMIFICATION_DOC_REF, gamification);
+    const cleanGamification = sanitizeForFirestore(gamification);
+    await setDoc(GAMIFICATION_DOC_REF, cleanGamification);
   } catch (err) {
     console.error('Erro ao salvar gamificação no Firestore:', err);
   }
@@ -142,7 +171,8 @@ export function subscribeToActiveLessonId(
  */
 export async function saveActiveLessonIdToFirestore(activeId: string): Promise<void> {
   try {
-    await setDoc(ACTIVE_LESSON_DOC_REF, { activeId });
+    const safeActiveId = activeId || '';
+    await setDoc(ACTIVE_LESSON_DOC_REF, { activeId: safeActiveId });
   } catch (err) {
     console.error('Erro ao salvar ID ativo no Firestore:', err);
   }
